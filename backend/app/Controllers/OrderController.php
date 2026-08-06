@@ -14,6 +14,9 @@ class OrderController extends ResourceController
 {
     public function create()
     {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
         $data = $this->request->getJSON(true);
 
         $walletModel = new WalletModel();
@@ -89,6 +92,12 @@ class OrderController extends ResourceController
             'attempts' => 0,
             'available_at' => date('Y-m-d H:i:s')
         ]);
+
+        $db->transComplete();
+
+        if (!$db->transStatus()) {
+            return $this->failServerError('Failed to place order');
+        }
 
         return $this->respondCreated([
             'message' => 'Order queued successfully',

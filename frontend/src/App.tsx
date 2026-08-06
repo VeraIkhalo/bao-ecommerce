@@ -1,42 +1,120 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { 
+    BrowserRouter, 
+    Routes, 
+    Route 
+} from "react-router-dom";
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Orders from "./pages/Orders";
-import Notifications from "./pages/Notifications";
+import { 
+    lazy, 
+    Suspense 
+} from "react";
 
-import DashboardLayout from "./layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import DashboardLayout from "./layouts/DashboardLayout";
+
+
+// Public pages
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+
+
+// Protected pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+
+
+// Error page
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+
+function Loading() {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            Loading...
+        </div>
+    );
+}
+
 
 export default function App() {
+
     return (
+
         <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Login />} />
 
-                <Route path="/register" element={<Register />} />
+            <Suspense fallback={<Loading />}>
 
-                <Route
-                    element={
-                        <ProtectedRoute>
-                            <DashboardLayout />
-                        </ProtectedRoute>
-                    }
-                >
-                    <Route path="/dashboard" element={<Dashboard />} />
+                <Routes>
 
-                    <Route path="/products" element={<Products />} />
 
-                    <Route path="/orders" element={<Orders />} />
+                    {/* Public Routes */}
+
+                    <Route 
+                        path="/" 
+                        element={<Login />} 
+                    />
+
+
+                    <Route 
+                        path="/register" 
+                        element={<Register />} 
+                    />
+
+
+
+                    {/* Protected Routes */}
 
                     <Route
-                        path="/notifications"
-                        element={<Notifications />}
+                        element={
+                            <ProtectedRoute>
+                                <DashboardLayout />
+                            </ProtectedRoute>
+                        }
+                    >
+
+                        <Route
+                            path="/dashboard"
+                            element={<Dashboard />}
+                        />
+
+
+                        <Route
+                            path="/products"
+                            element={<Products />}
+                        />
+
+
+                        <Route
+                            path="/orders"
+                            element={<Orders />}
+                        />
+
+
+                        <Route
+                            path="/notifications"
+                            element={<Notifications />}
+                        />
+
+
+                    </Route>
+
+
+
+                    {/* Catch unknown routes */}
+
+                    <Route
+                        path="*"
+                        element={<NotFound />}
                     />
-                </Route>
-            </Routes>
+
+
+                </Routes>
+
+            </Suspense>
+
         </BrowserRouter>
+
     );
 }

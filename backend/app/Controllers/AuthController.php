@@ -10,60 +10,71 @@ use CodeIgniter\RESTful\ResourceController;
 class AuthController extends ResourceController
 {
     public function register()
-    {
-        $userModel = new UserModel();
-        $walletModel = new WalletModel();
-        $walletTransactionModel = new WalletTransactionModel();
+{
+    $db = \Config\Database::connect();
 
-        $data = $this->request->getJSON(true);
+    $db->transStart();
 
-        if ($userModel->where('email', $data['email'])->first()) {
-            return $this->fail('Email already exists');
+    $userModel = new UserModel();
+    $walletModel = new WalletModel();
+    $walletTransactionModel = new WalletTransactionModel();
+
+    $data = $this->request->getJSON(true);
+
+    if ($userModel->where('email', $data['email'])->first()) {
+        return $this->fail('Email already exists');
+    }
+
+    $referralCode = strtoupper(substr(md5(uniqid()), 0, 8));
+
+    $userId = $userModel->insert([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+        'referral_code' => $referralCode,
+        'referred_by' => $data['referral_code'] ?? null,
+    ]);
+
+    $balance = 0;
+
+    if (!empty($data['referral_code'])) {
+
+        $referrer = $userModel
+            ->where('referral_code', $data['referral_code'])
+            ->first();
+
+        if ($referrer) {
+            $balance = 200;
         }
+    }
 
-        $referralCode = strtoupper(substr(md5(uniqid()), 0, 8));
+    $walletId = $walletModel->insert([
+        'user_id' => $userId,
+        'balance' => $balance,
+    ]);
 
-        $userId = $userModel->insert([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-            'referral_code' => $referralCode,
-            'referred_by' => $data['referral_code'] ?? null,
-        ]);
+    if ($balance > 0) {
 
-        $balance = 0;
-
-        if (!empty($data['referral_code'])) {
-
-            $referrer = $userModel
-                ->where('referral_code', $data['referral_code'])
-                ->first();
-
-            if ($referrer) {
-                $balance = 200;
-            }
-        }
-
-        $walletId = $walletModel->insert([
-            'user_id' => $userId,
-            'balance' => $balance
-        ]);
-
-        if ($balance > 0) {
-
-            $walletTransactionModel->insert([
-                'wallet_id' => $walletId,
-                'type' => 'credit',
-                'amount' => 200,
-                'description' => 'Referral bonus'
-            ]);
-        }
-
-        return $this->respondCreated([
-            'message' => 'Registration successful',
-            'user_id' => $userId
+        $walletTransactionModel->insert([
+            'wallet_id' => $walletId,
+            'type' => 'credit',
+            'amount' => 200,
+            'description' => 'Referral bonus',
         ]);
     }
+
+    $db->transComplete();
+
+    if (!$db->transStatus()) {
+        return $this->failServerError('Registration failed');
+    }
+
+    return $this->respondCreated([
+        'message' => 'Registration successful',
+        'user_id' => $userId,
+        'referral_code' => $referralCode,
+    ]);
+}
 
     public function login()
     {

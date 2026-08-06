@@ -15,16 +15,24 @@ class ProductController extends ResourceController
     }
 
     public function create()
-    {
-        $model = new ProductModel();
+{
+    $model = new ProductModel();
 
-        $data = $this->request->getJSON(true);
+    $data = $this->request->getJSON(true);
 
-        $id = $model->insert($data);
-
-        return $this->respondCreated([
-            'message' => 'Product created',
-            'id' => $id
-        ]);
+    if (
+        empty($data['name']) ||
+        empty($data['price']) ||
+        empty($data['stock'])
+    ) {
+        return $this->failValidationErrors('Name, price and stock are required.');
     }
+
+    $id = $model->insert($data);
+
+    return $this->respondCreated([
+        'message' => 'Product created successfully',
+        'id' => $id
+    ]);
+}
 }

@@ -4,3 +4,5 @@ database.default.username = root
 database.default.password = Bicycles1234.
 database.default.DBDriver = MySQLi
 database.default.port = 3306
+
+JWT_SECRET=bao_ecommerce_secret_2026
